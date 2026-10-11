@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131c">
+  <title>J.H AI — مساعدك الذكي</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b0e14;--panel:#141925;--line:#293244;--text:#f4f6fb;--muted:#aab4c6;--accent:#8b7cff;--accent2:#4fd1c5}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#202044 0,#0b0e14 48%);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+    header{display:flex;align-items:center;gap:12px;padding:18px max(18px,calc((100vw - 900px)/2));border-bottom:1px solid #ffffff12;background:#0b0e14bb;backdrop-filter:blur(12px);position:sticky;top:0}
+    .logo{width:44px;height:44px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:900;color:#0b0e14;letter-spacing:-1px}.brand{font-weight:800;font-size:18px}.sub{color:var(--muted);font-size:12px;margin-top:2px}
+    main{width:min(900px,100%);margin:0 auto;flex:1;padding:32px 16px 20px;display:flex;flex-direction:column}.hero{text-align:center;margin:30px 0 24px}.hero h1{font-size:clamp(28px,5vw,42px);margin:0 0 10px;letter-spacing:-1px}.hero h1 span{background:linear-gradient(90deg,#a99fff,#62e2d2);background-clip:text;color:transparent}.hero p{color:var(--muted);margin:0;line-height:1.8}
+    .suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:8px 0 24px}.suggestion{border:1px solid var(--line);background:#141925cc;color:var(--text);border-radius:14px;padding:14px;text-align:right;cursor:pointer;font:inherit;transition:.2s}.suggestion:hover{border-color:var(--accent);transform:translateY(-1px)}
+    #chat{display:flex;flex-direction:column;gap:16px;padding-bottom:20px}.message{max-width:88%;padding:14px 16px;border-radius:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}.user{align-self:flex-start;background:#29244b;border:1px solid #6558bb}.assistant{align-self:flex-end;background:var(--panel);border:1px solid var(--line)}.error{color:#ffb4b4}
+    .composer{position:sticky;bottom:0;padding:12px 0 8px;background:linear-gradient(transparent,#0b0e14 22%)}form{display:flex;gap:10px;border:1px solid #3a4358;background:#141925;border-radius:18px;padding:8px;box-shadow:0 12px 40px #0004}textarea{flex:1;resize:vertical;min-height:48px;max-height:150px;background:transparent;border:0;outline:0;color:var(--text);font:inherit;padding:12px}button.send{border:0;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0b0e14;font-weight:800;padding:0 20px;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.note{text-align:center;color:#7f8ba2;font-size:11px;line-height:1.7;margin-top:10px}footer{text-align:center;color:#69758b;font-size:12px;padding:14px}
+    @media(max-width:520px){.suggestions{grid-template-columns:1fr}.message{max-width:96%}.hero{margin-top:22px}header{padding:14px 16px}}
+  </style>
+</head>
+<body>
+  <header><div class="logo">JH</div><div><div class="brand">J.H AI</div><div class="sub">مساعدك الذكي — نسخة أولية</div></div></header>
+  <main>
+    <section class="hero"><h1>أهلًا بك في <span>J.H AI</span></h1><p>اسأل، تعلّم، واستكشف أفكارًا جديدة.<br>إذا لم يكن الجواب مؤكدًا، يجب أن أوضّح ذلك بدل التخمين.</p></section>
+    <section class="suggestions" id="suggestions">
+      <button class="suggestion" data-prompt="اشرح لي مفهومًا علميًا بطريقة بسيطة مع مثال.">🧪 اشرح مفهومًا علميًا</button>
+      <button class="suggestion" data-prompt="ساعدني على حل مسألة رياضيات واشرح الخطوات.">📐 ساعدني بالرياضيات</button>
+      <button class="suggestion" data-prompt="لخّص لي موضوعًا دراسيًا بنقاط واضحة.">📚 لخّص موضوعًا دراسيًا</button>
+      <button class="suggestion" data-prompt="كيف أتحقق من صحة معلومة علمية على الإنترنت؟">🔎 كيف أتحقق من معلومة؟</button>
+    </section>
+    <section id="chat" aria-live="polite"></section>
+    <div class="composer"><form id="form"><textarea id="input" rows="1" placeholder="اكتب سؤالك هنا…" aria-label="اكتب سؤالك"></textarea><button class="send" id="send" type="submit">إرسال ↑</button></form><div class="note">قد يخطئ الذكاء الاصطناعي؛ تحقّق من المعلومات المهمة عبر مصادر موثوقة. لا تضع كلمات مرور أو معلومات شخصية حساسة هنا.</div></div>
+  </main>
+  <footer>J.H AI · إصدار تجريبي</footer>
+<script>
+const form=document.querySelector('#form'),input=document.querySelector('#input'),chat=document.querySelector('#chat'),send=document.querySelector('#send');
+function addMessage(text,role,error=false){const el=document.createElement('div');el.className='message '+role+(error?' error':'');el.textContent=text;chat.appendChild(el);el.scrollIntoView({behavior:'smooth',block:'nearest'});return el}
+async function ask(text){const q=text.trim();if(!q)return;document.querySelector('#suggestions').style.display='none';addMessage(q,'user');input.value='';send.disabled=true;input.disabled=true;const waiting=addMessage('عم فكّر بالجواب…','assistant');try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:q})});const d=await r.json();waiting.remove();if(!r.ok) addMessage(d.error||'صار خطأ. جرّب لاحقًا.','assistant',true);else addMessage(d.answer||'ما وصلني جواب.','assistant')}catch(e){waiting.remove();addMessage('الموقع غير مربوط بالخادم حاليًا أو لا يوجد اتصال. بعد النشر وربط محرك الذكاء الاصطناعي ستعمل المحادثة.','assistant',true)}finally{send.disabled=false;input.disabled=false;input.focus()}}
+form.addEventListener('submit',e=>{e.preventDefault();ask(input.value)});document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>ask(b.dataset.prompt)));input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit()}});
+</script>
+</body></html>

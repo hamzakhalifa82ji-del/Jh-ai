@@ -7,12 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(express.json({ limit: '1mb' }));
 
-// عرض الصفحة الرئيسية الموجودة بجانب server.js
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// عرض الملفات الثابتة إن وجدت
 app.use(express.static(__dirname));
 
 app.post('/api/chat', async (req, res) => {
@@ -23,60 +21,86 @@ app.post('/api/chat', async (req, res) => {
         : '';
 
     if (!message) {
-      return res.status(400).json({ error: 'اكتب سؤالك أولًا.' });
-    }
-
-    if (message.length > 5000) {
-      return res.status(400).json({ error: 'السؤال طويل جدًا، اختصره قليلًا.' });
-    }
-
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(503).json({
-        error: 'الموقع جاهز، لكن لم يتم ربط محرك الذكاء الاصطناعي بعد.'
+      return res.status(400).json({
+        error: 'اكتب سؤالك أولًا.'
       });
     }
 
-    const response = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
-        instructions: 'أنت J.H AI، مساعد عربي واضح وودود. كن دقيقًا قدر الإمكان. لا تخترع معلومات أو مصادر. إذا لم تكن متأكدًا، صرّح بعدم التأكد. أجب بلغة المستخدم.',
-        input: message,
-        max_output_tokens: 800
-      })
-    });
+    if (message.length > 5000) {
+      return res.status(400).json({
+        error: 'السؤال طويل جدًا، اختصره قليلًا.'
+      });
+    }
+
+    const token = process.env.HF_TOKEN;
+
+    if (!token) {
+      return res.status(503).json({
+        error: 'لم يتم إعداد محرك الذكاء الاصطناعي بعد.'
+      });
+    }
+
+    const response = await fetch(
+      'https://router.huggingface.co/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-120b:fastest',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'أنت J.H AI، مساعد عربي ودود ودقيق. أجب بلغة المستخدم، ولا تخترع معلومات عند عدم التأكد.'
+            },
+            {
+              role: 'user',
+              content: message
+            }
+          ],
+          max_tokens: 800,
+          stream: false
+        })
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('AI API error:', data?.error?.message || response.status);
+      console.error(
+        'Hugging Face API error:',
+        response.status,
+        data?.error || data?.message || 'Unknown error'
+      );
+
       return res.status(502).json({
-        error: 'تعذّر الحصول على جواب الآن. جرّب مرة ثانية لاحقًا.'
+        error:
+          'تعذّر الحصول على جواب. قد يكون السبب نفاد الرصيد المجاني أو عدم توفر النموذج. حاول لاحقًا.'
       });
     }
 
-    const answer = (data.output || [])
-      .filter(item => item.type === 'message')
-      .flatMap(item => item.content || [])
-      .filter(part => part.type === 'output_text')
-      .map(part => part.text)
-      .join('\n')
-      .trim();
+    const answer =
+      data?.choices?.[0]?.message?.content?.trim();
 
     return res.json({
-      answer: answer || 'ما قدرت أجهّز جوابًا هذه المرة. جرّب صياغة السؤال بطريقة أخرى.'
+      answer:
+        answer ||
+        'لم يصلني جواب هذه المرة. جرّب سؤالًا آخر.'
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error('Server error:', error);
+
     return res.status(500).json({
-      error: 'صار خطأ غير متوقع. جرّب مرة ثانية.'
+      error: 'حدث خطأ غير متوقع. حاول مرة أخرى.'
     });
   }
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`J.H AI running on port ${port}`));
+
+app.listen(port, () => {
+  console.log(`J.H AI running on port ${port}`);
+});

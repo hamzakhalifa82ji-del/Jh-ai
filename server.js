@@ -6,7 +6,9 @@ const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 app.post('/api/chat', async (req, res) => {
   try {
     const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
